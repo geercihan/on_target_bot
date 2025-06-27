@@ -5,7 +5,7 @@ from datetime import datetime
 import pytz
 
 # === Environment Variables ===
-API_KEY = os.getenv("API_KEY")
+API_KEY = os.getenv("API_KEY", "").strip()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 TIMEZONE = pytz.timezone("Africa/Tunis")
