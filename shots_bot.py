@@ -49,22 +49,22 @@ def fetch_statistics(fixture_id):
     return response.json().get("response", [])
 
 # === Extract shots for both teams ===
-def extract_shots(stat_list):
+def extract_shots(stat_list, home_id, away_id):
     on_home, off_home = 0, 0
     on_away, off_away = 0, 0
     for team_stats in stat_list:
-        team_side = team_stats.get("team", {}).get("name", "").lower()
+        team_id = team_stats.get("team", {}).get("id")
         stats = team_stats.get("statistics", [])
         for s in stats:
             if s["type"] == "Shots on Goal":
-                if team_stats.get("team", {}).get("id_type") == "home":
+                if team_id == home_id:
                     on_home = s["value"] or 0
-                else:
+                elif team_id == away_id:
                     on_away = s["value"] or 0
             elif s["type"] == "Shots off Goal":
-                if team_stats.get("team", {}).get("id_type") == "home":
+                if team_id == home_id:
                     off_home = s["value"] or 0
-                else:
+                elif team_id == away_id:
                     off_away = s["value"] or 0
     return on_home, off_home, on_away, off_away
 
@@ -101,6 +101,8 @@ def main():
         score_away = match["goals"].get("away", 0)
         home_team = match["teams"]["home"]["name"]
         away_team = match["teams"]["away"]["name"]
+        home_id = match["teams"]["home"]["id"]
+        away_id = match["teams"]["away"]["id"]
         league = match["league"]["name"]
         round_ = match["league"].get("round", "N/A")
         country = match["league"].get("country", "N/A")
@@ -115,10 +117,7 @@ def main():
             print("[SKIP] ❌ No statistics available.")
             continue
 
-        # Inject team roles
-        stats[0]["team"]["id_type"] = "home"
-        stats[1]["team"]["id_type"] = "away"
-        on_home, off_home, on_away, off_away = extract_shots(stats)
+        on_home, off_home, on_away, off_away = extract_shots(stats, home_id, away_id)
         on_total = on_home + on_away
         off_total = off_home + off_away
 
