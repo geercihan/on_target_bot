@@ -52,6 +52,17 @@ def extract_shots(stats):
                 off += stat["value"]
     return on, off
 
+# === Fetch real stats using separate endpoint ===
+def get_fixture_stats(fixture_id):
+    url = f"https://v3.football.api-sports.io/fixtures/statistics?fixture={fixture_id}"
+    headers = {"x-apisports-key": API_KEY}
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        print(f"[ERROR] Failed to fetch stats for fixture {fixture_id}: {response.status_code}")
+        return 0, 0
+    data = response.json().get("response", [])
+    return extract_shots(data)
+
 # === Send Telegram message ===
 def send_telegram_alert(fixture, minute, on_target, off_target, home_rank, away_rank):
     home = fixture["teams"]["home"]["name"]
@@ -97,8 +108,7 @@ def main():
             print(f"[SKIP] 🔁 Already alerted.")
             continue
 
-        stats = match.get("statistics", [])
-        on_target, off_target = extract_shots(stats)
+        on_target, off_target = get_fixture_stats(fixture_id)
 
         print(f"[STATS] 🎯 On: {on_target} | 🚀 Off: {off_target}")
 
