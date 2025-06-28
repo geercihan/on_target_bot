@@ -103,6 +103,7 @@ def main():
 
         stats = match.get("statistics", [])
         if not stats or len(stats) < 2:
+            print("[SKIP] ❌ No statistics available.")
             continue
 
         # Inject team roles
@@ -112,7 +113,7 @@ def main():
         on_total = on_home + on_away
         off_total = off_home + off_away
 
-        print(f"[STATS] 🎯 On: {on_total} | 🚀 Off: {off_total}")
+        print(f"[STATS] 🎯 On: {on_total} (Home: {on_home}, Away: {on_away}) | 🚀 Off: {off_total}")
 
         # === Case 1 ===
         if minute <= 16 and fixture_id not in sent["case1"]:
