@@ -90,8 +90,16 @@ def main():
         minute = match["fixture"]["status"].get("elapsed", 0)
         score_home = match["goals"].get("home", 0)
         score_away = match["goals"].get("away", 0)
+        home_team = match["teams"]["home"]["name"]
+        away_team = match["teams"]["away"]["name"]
+        league = match["league"]["name"]
+        round_ = match["league"].get("round", "N/A")
+        country = match["league"].get("country", "N/A")
         home_rank = match["teams"]["home"].get("league", {}).get("position")
         away_rank = match["teams"]["away"].get("league", {}).get("position")
+
+        print(f"[CHECK] {home_team} vs {away_team} — ⏱ {minute}′")
+        print(f"🏷️ Country: {country} | 🏆 League: {league} | 🪪 Round: {round_}")
 
         stats = match.get("statistics", [])
         if not stats or len(stats) < 2:
@@ -104,6 +112,8 @@ def main():
         on_total = on_home + on_away
         off_total = off_home + off_away
 
+        print(f"[STATS] 🎯 On: {on_total} | 🚀 Off: {off_total}")
+
         # === Case 1 ===
         if minute <= 16 and fixture_id not in sent["case1"]:
             if on_total >= 1 and (on_total + off_total) >= 3:
@@ -112,7 +122,7 @@ def main():
 
         # === Case 2 ===
         if minute <= 25 and fixture_id not in sent["case2"]:
-            if (score_home, score_away) in [(1,0), (0,1)] and on_home >= 2 and on_away >= 2:
+            if (score_home, score_away) in [(1, 0), (0, 1)] and on_home >= 2 and on_away >= 2:
                 send_alert(match, minute, on_total, off_total, on_home, on_away, "Case 2", home_rank, away_rank)
                 sent["case2"].append(fixture_id)
 
