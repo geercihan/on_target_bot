@@ -39,21 +39,30 @@ def fetch_live_matches():
         return []
     return response.json().get("response", [])
 
+# === Get statistics from correct endpoint ===
+def fetch_statistics(fixture_id):
+    url = f"https://v3.football.api-sports.io/fixtures/statistics?fixture={fixture_id}"
+    headers = {"x-apisports-key": API_KEY}
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        return []
+    return response.json().get("response", [])
+
 # === Extract shots for both teams ===
 def extract_shots(stat_list):
     on_home, off_home = 0, 0
     on_away, off_away = 0, 0
     for team_stats in stat_list:
-        team = team_stats.get("team", {}).get("name")
+        team_side = team_stats.get("team", {}).get("name", "").lower()
         stats = team_stats.get("statistics", [])
         for s in stats:
             if s["type"] == "Shots on Goal":
-                if team_stats["team"]["id_type"] == "home":
+                if team_stats.get("team", {}).get("id_type") == "home":
                     on_home = s["value"] or 0
                 else:
                     on_away = s["value"] or 0
             elif s["type"] == "Shots off Goal":
-                if team_stats["team"]["id_type"] == "home":
+                if team_stats.get("team", {}).get("id_type") == "home":
                     off_home = s["value"] or 0
                 else:
                     off_away = s["value"] or 0
@@ -101,7 +110,7 @@ def main():
         print(f"[CHECK] {home_team} vs {away_team} — ⏱ {minute}′")
         print(f"🏷️ Country: {country} | 🏆 League: {league} | 🪪 Round: {round_}")
 
-        stats = match.get("statistics", [])
+        stats = fetch_statistics(fixture_id)
         if not stats or len(stats) < 2:
             print("[SKIP] ❌ No statistics available.")
             continue
