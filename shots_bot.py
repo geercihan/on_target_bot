@@ -52,26 +52,17 @@ def extract_shots(stats):
                 off += stat["value"]
     return on, off
 
-# === Fetch real stats using separate endpoint ===
-def get_fixture_stats(fixture_id):
-    url = f"https://v3.football.api-sports.io/fixtures/statistics?fixture={fixture_id}"
-    headers = {"x-apisports-key": API_KEY}
-    response = requests.get(url, headers=headers)
-    if response.status_code != 200:
-        print(f"[ERROR] Failed to fetch stats for fixture {fixture_id}: {response.status_code}")
-        return 0, 0
-    data = response.json().get("response", [])
-    return extract_shots(data)
-
 # === Send Telegram message ===
 def send_telegram_alert(fixture, minute, on_target, off_target, home_rank, away_rank):
     home = fixture["teams"]["home"]["name"]
     away = fixture["teams"]["away"]["name"]
     league = fixture["league"]["name"]
+    round_name = fixture["league"].get("round", "Unknown Round")
     time_str = get_local_time()
 
     message = f"📊 <b>{home} vs {away}</b>\n"
     message += f"🏆 <b>{league}</b>\n"
+    message += f"📅 <i>{round_name}</i>\n"
     if home_rank: message += f"📈 {home} Rank: <b>{home_rank}</b>\n"
     if away_rank: message += f"📈 {away} Rank: <b>{away_rank}</b>\n"
     message += f"\n⏱ Minute: <b>{minute}</b>\n"
@@ -108,7 +99,8 @@ def main():
             print(f"[SKIP] 🔁 Already alerted.")
             continue
 
-        on_target, off_target = get_fixture_stats(fixture_id)
+        stats = match.get("statistics", [])
+        on_target, off_target = extract_shots(stats)
 
         print(f"[STATS] 🎯 On: {on_target} | 🚀 Off: {off_target}")
 
