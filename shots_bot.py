@@ -45,8 +45,8 @@ def fetch_statistics(fixture_id):
     headers = {"x-apisports-key": API_KEY}
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
-        return []
-    return response.json().get("response", [])
+        return None, response.status_code
+    return response.json().get("response", []), response.status_code
 
 # === Extract shots for both teams ===
 def extract_shots(stat_list, home_id, away_id):
@@ -85,7 +85,7 @@ def send_alert(fixture, minute, on_total, off_total, on_home, on_away, case, hom
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"}
-    r = requests.post(url, data=payload)
+    requests.post(url, data=payload)
     print(f"[ALERT] Sent for {home} vs {away} | {case}")
 
 # === Main Logic ===
@@ -93,6 +93,8 @@ def main():
     sent = load_sent_alerts()
     matches = fetch_live_matches()
     print(f"[INFO] Matches fetched: {len(matches)}")
+
+    denied_stats = {}
 
     for match in matches:
         fixture_id = str(match["fixture"]["id"])
@@ -112,9 +114,10 @@ def main():
         print(f"[CHECK] {home_team} vs {away_team} — ⏱ {minute}′")
         print(f"🏷️ Country: {country} | 🏆 League: {league} | 🪪 Round: {round_}")
 
-        stats = fetch_statistics(fixture_id)
-        if not stats or len(stats) < 2:
-            print("[SKIP] ❌ No statistics available.")
+        stats, status_code = fetch_statistics(fixture_id)
+        if stats is None or len(stats) < 2:
+            print(f"[SKIP] ❌ No statistics available (Status: {status_code})")
+            denied_stats[fixture_id] = status_code
             continue
 
         on_home, off_home, on_away, off_away = extract_shots(stats, home_id, away_id)
@@ -136,6 +139,20 @@ def main():
                 sent["case2"].append(fixture_id)
 
     save_sent_alerts(sent)
+
+    # === Summary of denied statistics ===
+    if denied_stats:
+        print(f"\n[SUMMARY] 🚫 {len(denied_stats)} matches denied statistics access:")
+        lines = [f"⚠️ <b>{len(denied_stats)} matches denied access</b>:"]
+        for fid, code in denied_stats.items():
+            lines.append(f"• Fixture ID {fid}: <b>Status {code}</b>")
+            print(f"  - Fixture ID {fid}: Status {code}")
+        summary_msg = "\n".join(lines)
+        summary_url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        payload = {"chat_id": CHAT_ID, "text": summary_msg, "parse_mode": "HTML"}
+        requests.post(summary_url, data=payload)
+    else:
+        print("\n[SUMMARY] ✅ All matches had accessible statistics.")
 
 if __name__ == "__main__":
     main()
